@@ -38,8 +38,8 @@
 
 		function preload(){
 			this.load.audio('thing', 'assets/fallenskies.wav');
-			// this.load.image('sky', 'assets/sky.png');
-			// this.load.image('sky2', 'assets/sky2.png');
+			this.load.image('sky', 'assets/sky.png');
+			this.load.image('sky2', 'assets/sky2.png');
 			this.load.image('sky4', 'assets/sky4.png');
 			this.load.image('stars', 'assets/star.png');
 			this.load.image('bomb', 'assets/bomb.png');
@@ -47,6 +47,15 @@
 
 			this.load.spritesheet('dude', 'assets/dude.png', {frameWidth: 32, frameHeight: 48});
 		}
+
+
+
+
+
+
+
+
+
 
 		function create() {
 			this.add.image(100,500, 'dude');
@@ -60,11 +69,23 @@
 				platforms.create( 600, 400, 'ground');
 				platforms.create( 50, 250, 'ground');
 				platforms.create( 750, 220, 'ground');
+			// STARS
+				stars = this.physics.add.group({
+					key : 'stars' ,
+					repeat : 11,
+					setXY : {x: 12, y:0 , stepX: 70}
+				});
+
+				stars.children.iterate( function( child ){
+					child.setBounce(Phaser.Math.FloatBetween(0.4,0.8));
+				})
+
+
 			// PLAYER
 				player = this.physics.add.sprite(100, 500, 'dude');
 				player.setBounce(0.2);
 				player.setCollideWorldBounds(true);
-				player.body.setGravity(0, 300);
+				player.body.setGravity(0, 1000);
 			// PLAYER ANIMATION
 				this.anims.create({
 					// if()
@@ -84,42 +105,78 @@
 					frames: [{ key: 'dude', frame: 4}],
 					frameRate	: 10
 				});
+				this.anims.create({
+					key	: "turnLeft",
+					frames: [{ key: 'dude', frame: 2}],
+					frameRate	: 10
+				});
+				this.anims.create({
+					key	: "turnRight",
+					frames: [{ key: 'dude', frame: 5}],
+					frameRate	: 10
+				});
 				// COLLIDERS
 					this.physics.add.collider( player, platforms );
+					this.physics.add.collider( stars, platforms );
+
+					this.physics.add.overlap(player, stars, collectStar, null, this);
+
 				// PLAYER EVENTS
 					cursors = this.input.keyboard.createCursorKeys();
 
 				// music = game.add.audio('music');
 				// music.play();
 
+				// UI
+			scoreText = this.add.text(16, 16, 'Score : 0', { fontSize: '32px', fill : '#600'});
 				}
+
+
+
+
+
+
+
+
 		function update() {
 			if(cursors.left.isDown) {
-				player.setVelocity(-160, 0)
-				player.anims.play("left", true);
+				if(player.body.touching.down) {
+					player.setVelocity(-160, 0)
+					player.anims.play("left", true);
+				} else {
+					player.anims.play("turnLeft", true);
+					player.setVelocity(-160, 0)
+				}
 			} else if(cursors.right.isDown) {
-				player.setVelocity(160, 0)
-				player.anims.play("right", true);
+				if (player.body.touching.down) { 
+					player.anims.play("right", true);
+					player.setVelocity(160, 0)
+				} else {
+					player.anims.play("turnRight", true);
+					player.setVelocity(160, 0)
+				}
 			} else if(cursors.down.isDown) {
-				player.setVelocity(0,160)
+				player.setVelocity(0,320)
 				player.anims.play("turn", true);
 			} else {
 				player.setVelocity(0)
 				player.anims.play("turn", true);
 			}
-// JUMP  
- 			// if(cursors.up.isDown && player.body.touching.down) {
-				// player.setVelocity(0,-160)
-				 			if(cursors.up.isDown) {
-				 				if(curson.left.isDown) {
-				 					player.setVelocity(-160,-160);
-				 				} else if (cursor.right.isDown) {
-				 					player.setVelocity(160,-160);
-				 				} else {	
-								player.setVelocity(0,-160)
-				 			}
-				}
-		}
+// JUMP (player.body.touching.down)  
+ 			if(cursors.up.isDown) {
+				player.setVelocity(0,-160)
+					}
+			
+
+			}
+
+			function collectStar(player, star){
+				star.disableBody(true, true);
+
+				score +=10;
+				scoreText.setText("Score: " + score );
+			}
+
 
 
 		</script>
