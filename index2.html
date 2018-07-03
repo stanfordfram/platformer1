@@ -24,6 +24,10 @@
 				}
 			}
 
+
+
+// add sound, particles, flipping
+
 			var game = new Phaser.Game( config );
 
 			var platforms;
@@ -37,7 +41,12 @@
 
 
 		function preload(){
-			this.load.audio('thing', 'assets/fallenskies.wav');
+
+			this.load.audio('theme', [
+				'assets/fallenskies.mp3',
+				'assets/fallenskies.ogg'
+				]);
+
 			this.load.image('sky', 'assets/sky.png');
 			this.load.image('sky2', 'assets/sky2.png');
 			this.load.image('sky4', 'assets/sky4.png');
@@ -47,6 +56,7 @@
 
 			this.load.spritesheet('dude', 'assets/dude.png', {frameWidth: 32, frameHeight: 48});
 		}
+
 
 
 
@@ -80,12 +90,11 @@
 					child.setBounce(Phaser.Math.FloatBetween(0.4,0.8));
 				})
 
-
 			// PLAYER
 				player = this.physics.add.sprite(100, 500, 'dude');
 				player.setBounce(0.2);
 				player.setCollideWorldBounds(true);
-				player.body.setGravity(0, 1000);
+				player.body.setGravity(0, 15000);
 			// PLAYER ANIMATION
 				this.anims.create({
 					// if()
@@ -115,11 +124,16 @@
 					frames: [{ key: 'dude', frame: 5}],
 					frameRate	: 10
 				});
+				// BOMBS
+					bombs = this.physics.add.group();
 				// COLLIDERS
 					this.physics.add.collider( player, platforms );
 					this.physics.add.collider( stars, platforms );
+					this.physics.add.collider( bombs, platforms );
 
 					this.physics.add.overlap(player, stars, collectStar, null, this);
+					this.physics.add.overlap(player, bombs, hitBomb, null, this);
+
 
 				// PLAYER EVENTS
 					cursors = this.input.keyboard.createCursorKeys();
@@ -128,7 +142,10 @@
 				// music.play();
 
 				// UI
-			scoreText = this.add.text(16, 16, 'Score : 0', { fontSize: '32px', fill : '#600'});
+			scoreText = this.add.text(16, 16, 'Score : 0', { fontSize: '32px', fill : '#800'});
+
+			var music = this.sound.add('theme');
+			music.play();
 				}
 
 
@@ -139,45 +156,104 @@
 
 
 		function update() {
-			if(cursors.left.isDown) {
-				if(player.body.touching.down) {
-					player.setVelocity(-160, 0)
-					player.anims.play("left", true);
-				} else {
-					player.anims.play("turnLeft", true);
-					player.setVelocity(-160, 0)
-				}
-			} else if(cursors.right.isDown) {
-				if (player.body.touching.down) { 
-					player.anims.play("right", true);
-					player.setVelocity(160, 0)
-				} else {
-					player.anims.play("turnRight", true);
-					player.setVelocity(160, 0)
-				}
-			} else if(cursors.down.isDown) {
-				player.setVelocity(0,320)
-				player.anims.play("turn", true);
-			} else {
-				player.setVelocity(0)
-				player.anims.play("turn", true);
-			}
-// JUMP (player.body.touching.down)  
- 			if(cursors.up.isDown) {
-				player.setVelocity(0,-160)
+			// if jumping in the air
+				if(cursors.up.isDown) {
+					if(cursors.left.isDown) {
+						player.setVelocity(-160, -500)
+						player.anims.play("turnLeft", true);
+					} else if(cursors.right.isDown) {
+						player.setVelocity(160, -500)
+						player.anims.play("turnRight", true);
+					} else {
+						player.setVelocity(0, -500)
+						player.anims.play("turn", true);
 					}
-			
-
+				} else {
+					// if not jumping in the air
+					if(!player.body.touching.down) {
+						// if downing in the air
+						if(cursors.down.isDown) {
+							if(cursors.left.isDown) {
+								player.setVelocity(-160, 200)
+								player.anims.play("turnLeft", true);
+							} else if(cursors.right.isDown) {
+								player.setVelocity(160, 200)
+								player.anims.play("turnRight", true);
+							} else {
+								player.setVelocity(0, 200)
+								player.anims.play("turn", true);
+							}
+							// if not downing  in the air
+						} else {
+							if(cursors.left.isDown) {
+								player.setVelocity(-160, 0)
+								player.anims.play("turnLeft", true);
+							} else if(cursors.right.isDown) {
+								player.setVelocity(160, 0)
+								player.anims.play("turnRight", true);
+							} else {
+								player.setVelocity(0, 0)
+								player.anims.play("turn", true);
+							}
+						// if on the floor
+					} else {
+						if(cursors.left.isDown) {
+							player.setVelocity(-160, 0)
+							player.anims.play("left", true);
+						} else if(cursors.right.isDown) {
+							player.setVelocity(160, 0)
+							player.anims.play("right", true);
+						} else {
+							player.setVelocity(0, 0)
+							player.anims.play("turn", true);
+						}
+					}
+				}
 			}
+		}
+
+
+
+
+	
+
+				// player.rotate += 10
+
+				
+	
+
+
 
 			function collectStar(player, star){
 				star.disableBody(true, true);
 
 				score +=10;
 				scoreText.setText("Score: " + score );
+
+				if(stars.countActive(true)=== 0 ) {
+
+						// recreate the stars
+						stars.children.iterate(function(child){
+							child.enableBody(true, child.x, 0, true, true);
+						});
+
+						var x = (player.x < 400) ? Phaser.Math.Between(400,800)	: Phaser.Math.Between(0,400);
+
+						var bomb = bombs.create(x, 16, 'bomb');
+						bomb.setBounce(1)
+						bomb.setCollideWorldBounds(true);
+						bomb.setVelocity( Phaser.Math.Between(-200,200), 20);
+
+						bomb.allowGravity = false;
+				}
 			}
 
-
+			function hitBomb( player, bomb) {
+				 this.physics.pause();
+				 player.setTint( 0xff0000 );
+				 player.anims.play('turn');
+				 gameOver = true;
+			}
 
 		</script>
 	</body>
